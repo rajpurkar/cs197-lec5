@@ -161,7 +161,14 @@ def img_to_patch(x, patch_size, flatten_channels=True):
                            as a feature vector instead of a image grid.
     """
     B, C, H, W = x.shape
-    x = x.reshape(B, C, H // patch_size, patch_size, W // patch_size, patch_size)
+    x = x.reshape(
+        B,
+        C,
+        torch.div(H, patch_size, rounding_mode='trunc'),
+        patch_size,
+        torch.div(W, patch_size, rounding_mode='floor'),
+        patch_size,
+    )
     x = x.permute(0, 2, 4, 1, 3, 5)  # [B, H', W', C, p_H, p_W]
     x = x.flatten(1, 2)  # [B, H'*W', C, p_H, p_W]
     if flatten_channels:
@@ -378,8 +385,8 @@ class ViT(pl.LightningModule):
 def train_model(**kwargs):
     trainer = pl.Trainer(
         default_root_dir=os.path.join(CHECKPOINT_PATH, "ViT"),
-        accelerator='gpu',
-        devices=0,
+        accelerator='auto',
+        devices=1,
         max_epochs=180,
         callbacks=[
             ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
